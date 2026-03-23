@@ -4,7 +4,7 @@ from functools import partial
 
 
 def _handle_sigterm(server, _signum, _frame):
-    logging.info('action: shutdown | result: in_progress | source: server | signal: SIGTERM')
+    logging.info('action: shutdown | result: in_progress | component: server | signal: SIGTERM')
     server.shutdown()
 
 
