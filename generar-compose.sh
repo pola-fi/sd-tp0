@@ -9,8 +9,8 @@ fi
 output_file="$1"
 client_count="$2"
 
-if ! [[ "$client_count" =~ ^[1-9][0-9]*$ ]]; then
-  echo "Error: la cantidad de clientes debe ser un entero positivo" >&2
+if ! [[ "$client_count" =~ ^[0-9]+$ ]]; then
+  echo "Error: la cantidad de clientes debe ser un entero no negativo" >&2
   exit 1
 fi
 
