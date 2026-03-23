@@ -2,8 +2,8 @@ package common
 
 import (
 	"bufio"
+	"context"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/op/go-logging"
@@ -22,7 +22,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config ClientConfig
-	conn   net.Conn
+	conn   connectionState
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -34,45 +34,50 @@ func NewClient(config ClientConfig) *Client {
 	return client
 }
 
-// CreateClientSocket Initializes client socket. In case of
-// failure, error is printed in stdout/stderr and exit 1
-// is returned
-func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-	}
-	c.conn = conn
-	return nil
-}
-
 // StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
+func (c *Client) StartClientLoop(ctx context.Context) {
+	go func() {
+		<-ctx.Done()
+		c.conn.close()
+	}()
+
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
 	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+		if c.shouldExit(ctx) {
+			return
+		}
+
 		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+		if c.handleError(ctx, "connect", c.conn.connect(c.config.ServerAddress)) {
+			return
+		}
+
+		conn := c.conn.get()
+		if conn == nil {
+			if c.shouldExit(ctx) {
+				return
+			}
+			log.Errorf("action: connect | result: fail | client_id: %v | error: nil connection", c.config.ID)
+			return
+		}
 
 		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
+		_, err := fmt.Fprintf(
+			conn,
 			"[CLIENT %v] Message N°%v\n",
 			c.config.ID,
 			msgID,
 		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+		if c.handleError(ctx, "send_message", err) {
+			c.conn.close()
+			return
+		}
 
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
+		msg, err := bufio.NewReader(conn).ReadString('\n')
+		c.conn.close()
+
+		if c.handleError(ctx, "receive_message", err) {
 			return
 		}
 
@@ -82,7 +87,9 @@ func (c *Client) StartClientLoop() {
 		)
 
 		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
+		if !c.waitLoopPeriod(ctx) {
+			return
+		}
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
