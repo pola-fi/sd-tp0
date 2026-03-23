@@ -24,7 +24,6 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -40,7 +39,6 @@ YAML
     entrypoint: /client
     environment:
       - CLI_ID=${i}
-      - CLI_LOG_LEVEL=DEBUG
     volumes:
       - ./client/config.yaml:/app/config.yaml
     networks:
