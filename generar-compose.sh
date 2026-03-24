@@ -74,6 +74,7 @@ YAML
       - CLI_BET_NUMERO=${numero}
     volumes:
       - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
     networks:
       - testing_net
     depends_on:

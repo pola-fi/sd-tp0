@@ -19,12 +19,13 @@ services:
       - CLI_ID=1
       - CLI_AGENCY_ID=1
       - CLI_BET_NOMBRE=Maria
-      - CLI_BET_APELLIDO=Diaz
-      - CLI_BET_DOCUMENTO=10020181
-      - CLI_BET_NACIMIENTO=1995-04-03
-      - CLI_BET_NUMERO=6123
+      - CLI_BET_APELLIDO=Torres
+      - CLI_BET_DOCUMENTO=10022166
+      - CLI_BET_NACIMIENTO=1977-06-05
+      - CLI_BET_NUMERO=3051
     volumes:
       - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
     networks:
       - testing_net
     depends_on:

@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/core"
 )
 
 var log = logging.MustGetLogger("log")
@@ -40,6 +40,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("batch", "maxAmount")
 	// add env variables for bet
 	v.BindEnv("agency", "id")
 	v.BindEnv("bet", "nombre")
@@ -91,13 +92,14 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | agency_id: %s | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | agency_id: %s | batch_max_amount: %v | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
 		v.GetString("agency.id"),
+		v.GetInt("batch.maxAmount"),
 		v.GetString("bet.nombre"),
 		v.GetString("bet.apellido"),
 		v.GetString("bet.documento"),
@@ -110,44 +112,36 @@ func main() {
 	v, err := InitConfig()
 	if err != nil {
 		log.Criticalf("%s", err)
+		os.Exit(1)
 	}
 
 	if err := InitLogger(v.GetString("log.level")); err != nil {
 		log.Criticalf("%s", err)
+		os.Exit(1)
 	}
 
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
-	clientConfig := common.ClientConfig{
-		ServerAddress: v.GetString("server.address"),
-		ID:            v.GetString("id"),
-		LoopAmount:    v.GetInt("loop.amount"),
-		LoopPeriod:    v.GetDuration("loop.period"),
+	// Wait for server to be ready
+	time.Sleep(2 * time.Second)
+
+	clientConfig := core.ClientConfig{
+		ServerAddress:  v.GetString("server.address"),
+		ID:             v.GetString("id"),
+		AgencyID:       v.GetString("agency.id"),
+		LoopAmount:     v.GetInt("loop.amount"),
+		LoopPeriod:     v.GetDuration("loop.period"),
+		BatchMaxAmount: v.GetInt("batch.maxAmount"),
 	}
 
-	betConfig := common.BetConfig{
-		AgencyID:      v.GetString("agency.id"),
-		Nombre:        v.GetString("bet.nombre"),
-		Apellido:      v.GetString("bet.apellido"),
-		Documento:     v.GetString("bet.documento"),
-		Nacimiento:    v.GetString("bet.nacimiento"),
-		Numero:        v.GetString("bet.numero"),
-	}
-
-	bet, err := common.NewBet(
-		betConfig.AgencyID,
-		betConfig.Nombre,
-		betConfig.Apellido,
-		betConfig.Documento,
-		betConfig.Nacimiento,
-		betConfig.Numero,
-	)
+	bets, err := core.LoadAgencyBets(v.GetString("agency.id"))
 	if err != nil {
-		log.Criticalf("Error creating bet: %v", err)
+		log.Criticalf("Error loading agency bets: %v", err)
+		os.Exit(1)
 	}
 
-	client := common.NewClient(clientConfig, bet)
+	client := core.NewClient(clientConfig, bets)
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 	client.StartClientLoop(ctx)

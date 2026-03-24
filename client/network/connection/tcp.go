@@ -50,3 +50,4 @@ func (tcp *TCPConnection) Close() error {
 	tcp.conn = nil
 	return err
 }
+

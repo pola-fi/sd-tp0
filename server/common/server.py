@@ -1,8 +1,8 @@
 import socket
 import logging
 from .exceptions import ServerShuttingDown
-from .bet_protocol import recv_full_bet_message
-from .bet_handler import BetHandler
+from .protocol.receiver import recv_full_batch_message
+from .handler import BetHandler
 
 
 class Server:
@@ -49,7 +49,7 @@ class Server:
         client socket will also be closed
         """
         try:
-            msg = recv_full_bet_message(client_sock)
+            msg = recv_full_batch_message(client_sock)
             addr = client_sock.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
             response = self._bet_handler.process(msg)
