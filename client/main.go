@@ -40,6 +40,13 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	// add env variables for bet
+	v.BindEnv("agency", "id")
+	v.BindEnv("bet", "nombre")
+	v.BindEnv("bet", "apellido")
+	v.BindEnv("bet", "documento")
+	v.BindEnv("bet", "nacimiento")
+	v.BindEnv("bet", "numero")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -84,12 +91,18 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | agency_id: %s | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetString("agency.id"),
+		v.GetString("bet.nombre"),
+		v.GetString("bet.apellido"),
+		v.GetString("bet.documento"),
+		v.GetString("bet.nacimiento"),
+		v.GetString("bet.numero"),
 	)
 }
 
@@ -113,7 +126,28 @@ func main() {
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	client := common.NewClient(clientConfig)
+	betConfig := common.BetConfig{
+		AgencyID:      v.GetString("agency.id"),
+		Nombre:        v.GetString("bet.nombre"),
+		Apellido:      v.GetString("bet.apellido"),
+		Documento:     v.GetString("bet.documento"),
+		Nacimiento:    v.GetString("bet.nacimiento"),
+		Numero:        v.GetString("bet.numero"),
+	}
+
+	bet, err := common.NewBet(
+		betConfig.AgencyID,
+		betConfig.Nombre,
+		betConfig.Apellido,
+		betConfig.Documento,
+		betConfig.Nacimiento,
+		betConfig.Numero,
+	)
+	if err != nil {
+		log.Criticalf("Error creating bet: %v", err)
+	}
+
+	client := common.NewClient(clientConfig, bet)
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 	client.StartClientLoop(ctx)
