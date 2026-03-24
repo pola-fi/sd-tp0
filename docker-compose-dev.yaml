@@ -3,10 +3,11 @@ services:
   server:
     container_name: server
     image: server:latest
-    entrypoint: python3 /main.py
+    entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
+    volumes:
+      - ./server/config.ini:/app/config.ini
     networks:
       - testing_net
 
@@ -16,7 +17,14 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_LOG_LEVEL=DEBUG
+      - CLI_AGENCY_ID=1
+      - CLI_BET_NOMBRE=Maria
+      - CLI_BET_APELLIDO=Diaz
+      - CLI_BET_DOCUMENTO=10020181
+      - CLI_BET_NACIMIENTO=1995-04-03
+      - CLI_BET_NUMERO=6123
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
     networks:
       - testing_net
     depends_on:

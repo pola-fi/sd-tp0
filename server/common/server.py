@@ -1,15 +1,18 @@
 import socket
 import logging
 from .exceptions import ServerShuttingDown
+from .bet_protocol import recv_full_bet_message
+from .bet_handler import BetHandler
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, bet_handler=None):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._is_shutting_down = False
+        self._bet_handler = bet_handler if bet_handler is not None else BetHandler()
 
     def run(self):
         """
@@ -46,15 +49,16 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            msg = recv_full_bet_message(client_sock)
             addr = client_sock.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            response = self._bet_handler.process(msg)
+            client_sock.sendall(response)
         except OSError as e:
             if not self._is_shutting_down:
                 logging.error(f"action: receive_message | result: fail | error: {e}")
+        except (ValueError, UnicodeDecodeError) as e:
+            logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
 
