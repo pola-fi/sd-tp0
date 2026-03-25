@@ -1,7 +1,9 @@
-import socket
 import logging
+import socket
+import threading
+
 from .exceptions import ServerShuttingDown
-from .protocol.receiver import recv_full_message
+from .handler import BetHandler
 from .protocol.endian import read_u16_be
 from .protocol.message_types import (
     MESSAGE_TYPE_BATCH,
@@ -9,7 +11,7 @@ from .protocol.message_types import (
     MESSAGE_TYPE_QUERY_WINNERS,
 )
 from .protocol.query_winners import QUERY_STATUS_PENDING, QUERY_STATUS_READY
-from .handler import BetHandler
+from .protocol.receiver import recv_full_message
 
 
 class Server:
@@ -20,20 +22,18 @@ class Server:
         self._server_socket.listen(listen_backlog)
         self._is_shutting_down = False
         self._bet_handler = bet_handler if bet_handler is not None else BetHandler(expected_agencies=expected_agencies)
+        self._workers_lock = threading.Lock()
+        self._workers = set()
 
     def run(self):
         """
-        Dummy Server loop
-
-        Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
+        Server loop that accepts new connections and delegates each client
+        to a dedicated worker thread.
         """
-
         while not self._is_shutting_down:
             try:
                 client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                self.__start_client_worker(client_sock)
             except ServerShuttingDown:
                 break
 
@@ -48,9 +48,32 @@ class Server:
         except OSError:
             pass
 
+        self.__join_workers()
+
+    def __start_client_worker(self, client_sock):
+        worker = threading.Thread(target=self.__client_worker_entry, args=(client_sock,))
+        with self._workers_lock:
+            self._workers.add(worker)
+        worker.start()
+
+    def __client_worker_entry(self, client_sock):
+        try:
+            self.__handle_client_connection(client_sock)
+        finally:
+            current = threading.current_thread()
+            with self._workers_lock:
+                self._workers.discard(current)
+
+    def __join_workers(self):
+        with self._workers_lock:
+            workers = list(self._workers)
+
+        for worker in workers:
+            worker.join(timeout=2)
+
     def __handle_client_connection(self, client_sock):
         """
-        Read message from a specific client socket and closes the socket
+        Read message from a specific client socket and closes the socket.
 
         If a problem arises in the communication with the client, the
         client socket will also be closed

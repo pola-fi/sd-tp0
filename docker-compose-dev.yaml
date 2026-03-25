@@ -19,11 +19,11 @@ services:
     environment:
       - CLI_ID=1
       - CLI_AGENCY_ID=1
-      - CLI_BET_NOMBRE=Maria
-      - CLI_BET_APELLIDO=Sanchez
-      - CLI_BET_DOCUMENTO=10012631
-      - CLI_BET_NACIMIENTO=1987-02-02
-      - CLI_BET_NUMERO=9853
+      - CLI_BET_NOMBRE=Laura
+      - CLI_BET_APELLIDO=Lopez
+      - CLI_BET_DOCUMENTO=10024987
+      - CLI_BET_NACIMIENTO=1994-03-08
+      - CLI_BET_NUMERO=5629
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
@@ -39,11 +39,11 @@ services:
     environment:
       - CLI_ID=2
       - CLI_AGENCY_ID=2
-      - CLI_BET_NOMBRE=Valentina
+      - CLI_BET_NOMBRE=Maria
       - CLI_BET_APELLIDO=Lopez
-      - CLI_BET_DOCUMENTO=10013760
-      - CLI_BET_NACIMIENTO=1969-06-01
-      - CLI_BET_NUMERO=4092
+      - CLI_BET_DOCUMENTO=10006258
+      - CLI_BET_NACIMIENTO=1990-10-17
+      - CLI_BET_NUMERO=8781
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
@@ -59,11 +59,11 @@ services:
     environment:
       - CLI_ID=3
       - CLI_AGENCY_ID=3
-      - CLI_BET_NOMBRE=Diego
+      - CLI_BET_NOMBRE=Carlos
       - CLI_BET_APELLIDO=Lopez
-      - CLI_BET_DOCUMENTO=10026702
-      - CLI_BET_NACIMIENTO=1975-09-18
-      - CLI_BET_NUMERO=6649
+      - CLI_BET_DOCUMENTO=10005824
+      - CLI_BET_NACIMIENTO=1993-01-24
+      - CLI_BET_NUMERO=3796
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
