@@ -1,15 +1,8 @@
 package core
 
 import (
-	"errors"
-
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/models"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/network/protocol"
-)
-
-var (
-	ErrSingleBetExceedsMaxPacket = errors.New("single bet exceeds max packet size")
-	ErrCouldNotBuildBatch        = errors.New("could not build batch")
 )
 
 type Chunker struct {
@@ -35,7 +28,7 @@ func (bc *Chunker) NextBatchSize(bets []*models.Bet, start int) (int, error) {
 		remaining = maxAmount
 	}
 
-	currentBytes := protocol.BatchCountFieldSize
+	currentBytes := 1 + protocol.BatchCountFieldSize
 	batchSize := 0
 	for batchSize < remaining {
 		size, err := protocol.EstimateSingleBetBatchSize(bc.protocol, bets[start+batchSize])

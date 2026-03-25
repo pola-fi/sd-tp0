@@ -1,18 +1,25 @@
 import socket
 import logging
 from .exceptions import ServerShuttingDown
-from .protocol.receiver import recv_full_batch_message
+from .protocol.receiver import recv_full_message
+from .protocol.endian import read_u16_be
+from .protocol.message_types import (
+    MESSAGE_TYPE_BATCH,
+    MESSAGE_TYPE_DONE,
+    MESSAGE_TYPE_QUERY_WINNERS,
+)
+from .protocol.query_winners import QUERY_STATUS_PENDING, QUERY_STATUS_READY
 from .handler import BetHandler
 
 
 class Server:
-    def __init__(self, port, listen_backlog, bet_handler=None):
+    def __init__(self, port, listen_backlog, expected_agencies=5, bet_handler=None):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._is_shutting_down = False
-        self._bet_handler = bet_handler if bet_handler is not None else BetHandler()
+        self._bet_handler = bet_handler if bet_handler is not None else BetHandler(expected_agencies=expected_agencies)
 
     def run(self):
         """
@@ -49,10 +56,10 @@ class Server:
         client socket will also be closed
         """
         try:
-            msg = recv_full_batch_message(client_sock)
+            msg = recv_full_message(client_sock)
             addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
             response = self._bet_handler.process(msg)
+            self.__log_receive_success(addr[0], msg, response)
             client_sock.sendall(response)
         except OSError as e:
             if not self._is_shutting_down:
@@ -61,6 +68,36 @@ class Server:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
+
+    def __log_receive_success(self, ip, msg, response):
+        summary = self.__summarize_message(msg)
+        if msg and msg[0] == MESSAGE_TYPE_QUERY_WINNERS:
+            query_status = response[1] if len(response) >= 2 else None
+            if query_status == QUERY_STATUS_PENDING:
+                logging.debug(f'action: receive_message | result: success | ip: {ip} | {summary} | query_status: pending')
+                return
+            if query_status == QUERY_STATUS_READY:
+                logging.info(f'action: receive_message | result: success | ip: {ip} | {summary} | query_status: ready')
+                return
+
+        logging.info(f'action: receive_message | result: success | ip: {ip} | {summary}')
+
+    def __summarize_message(self, msg):
+        if not msg:
+            return 'msg_type: empty | bytes: 0'
+
+        msg_type = msg[0]
+        if msg_type == MESSAGE_TYPE_BATCH:
+            batch_count = read_u16_be(msg, 1) if len(msg) >= 3 else 0
+            return f'msg_type: batch | bytes: {len(msg)} | batch_count: {batch_count}'
+        if msg_type == MESSAGE_TYPE_DONE:
+            agency = chr(msg[1]) if len(msg) >= 2 else '?'
+            return f'msg_type: done | bytes: {len(msg)} | agency_id: {agency}'
+        if msg_type == MESSAGE_TYPE_QUERY_WINNERS:
+            agency = chr(msg[1]) if len(msg) >= 2 else '?'
+            return f'msg_type: query_winners | bytes: {len(msg)} | agency_id: {agency}'
+
+        return f'msg_type: unknown({msg_type}) | bytes: {len(msg)}'
 
     def __accept_new_connection(self):
         """

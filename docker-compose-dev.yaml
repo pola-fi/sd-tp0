@@ -6,6 +6,7 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
+      - SERVER_EXPECTED_AGENCIES=3
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -19,10 +20,50 @@ services:
       - CLI_ID=1
       - CLI_AGENCY_ID=1
       - CLI_BET_NOMBRE=Maria
-      - CLI_BET_APELLIDO=Torres
-      - CLI_BET_DOCUMENTO=10022166
-      - CLI_BET_NACIMIENTO=1977-06-05
-      - CLI_BET_NUMERO=3051
+      - CLI_BET_APELLIDO=Sanchez
+      - CLI_BET_DOCUMENTO=10012631
+      - CLI_BET_NACIMIENTO=1987-02-02
+      - CLI_BET_NUMERO=9853
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client2:
+    container_name: client2
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=2
+      - CLI_AGENCY_ID=2
+      - CLI_BET_NOMBRE=Valentina
+      - CLI_BET_APELLIDO=Lopez
+      - CLI_BET_DOCUMENTO=10013760
+      - CLI_BET_NACIMIENTO=1969-06-01
+      - CLI_BET_NUMERO=4092
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client3:
+    container_name: client3
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=3
+      - CLI_AGENCY_ID=3
+      - CLI_BET_NOMBRE=Diego
+      - CLI_BET_APELLIDO=Lopez
+      - CLI_BET_DOCUMENTO=10026702
+      - CLI_BET_NACIMIENTO=1975-09-18
+      - CLI_BET_NUMERO=6649
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data

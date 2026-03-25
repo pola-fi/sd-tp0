@@ -27,6 +27,8 @@ def initialize_config():
         config_params["port"] = int(os.getenv('SERVER_PORT', config["DEFAULT"]["SERVER_PORT"]))
         config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
         config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
+        expected_default = config["DEFAULT"].get("SERVER_EXPECTED_AGENCIES", "5")
+        config_params["expected_agencies"] = int(os.getenv('SERVER_EXPECTED_AGENCIES', expected_default))
     except KeyError as e:
         raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
@@ -40,16 +42,17 @@ def main():
     logging_level = config_params["logging_level"]
     port = config_params["port"]
     listen_backlog = config_params["listen_backlog"]
+    expected_agencies = config_params["expected_agencies"]
 
     initialize_log(logging_level)
 
     # Log config parameters at the beginning of the program to verify the configuration
     # of the component
     logging.debug(f"action: config | result: success | port: {port} | "
-                  f"listen_backlog: {listen_backlog} | logging_level: {logging_level}")
+                  f"listen_backlog: {listen_backlog} | logging_level: {logging_level} | expected_agencies: {expected_agencies}")
 
     # Initialize server and start server loop
-    server = Server(port, listen_backlog)
+    server = Server(port, listen_backlog, expected_agencies=expected_agencies)
     register_sigterm_handler(server)
     server.run()
 

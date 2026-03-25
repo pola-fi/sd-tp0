@@ -33,7 +33,7 @@ generar_numero() {
 }
 
 {
-  cat <<'YAML'
+  cat <<YAML
 name: tp0
 services:
   server:
@@ -42,6 +42,7 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
+      - SERVER_EXPECTED_AGENCIES=${client_count}
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -94,4 +95,3 @@ YAML
 } > "$output_file"
 
 echo "Docker Compose generado en $output_file con $client_count cliente(s)."
-
