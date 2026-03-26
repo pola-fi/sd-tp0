@@ -36,9 +36,9 @@ El volumen del host esta montado dentro del contenedor, por eso no es necesario 
 
 ### Ejercicio 3 — Validar el echo server
 
-Script **`validar-echo-server.sh`** en la raíz del repo. Comprueba el echo enviando un mensaje con **netcat** al `server` en el puerto del config (por defecto **12345**). El **nc** no corre en el host: el script levanta un contenedor **busybox** en la misma red Docker del compose del TP (**`tp0_testing_net`**, con proyecto `name: tp0` y red `testing_net` en el YAML generado). No hace falta publicar el puerto del servidor en el host.
+Script **`validar-echo-server.sh`** en la raíz del repo. Comprueba el echo enviando un mensaje con **netcat** al `server` en el puerto del config. El **nc** no corre en el host: el script levanta un contenedor **busybox** en la misma red Docker **`tp0_testing_net`** configurada en el docker-compose, con proyecto `name: tp0` y red `testing_net` en el YAML generado. No hace falta publicar el puerto del servidor en el host.
 
-1. Levantar el stack (al menos el servicio `server`), por ejemplo con `./generar-compose.sh docker-compose-dev.yaml <N>` y los `make` de la prueba manual. Para probar solo el server también podés usar `N=0` en el script.
+1. Levantar el stack (al menos el servicio `server`), por ejemplo con `./generar-compose.sh docker-compose-dev.yaml 0` y los `make` de la prueba manual
 2. Desde la raíz del repo:
 
 ```bash
@@ -46,6 +46,17 @@ sh validar-echo-server.sh
 ```
 
 Si el echo devuelve el mismo mensaje enviado, imprime `action: test_echo_server | result: success`; si no, `action: test_echo_server | result: fail`.
+
+### Ejercicio 4 — SIGTERM y cierre graceful
+
+Cliente y servidor reaccionan a **SIGTERM** cerrando sockets y saliendo de forma ordenada (sin depender de que Docker mate el proceso a la fuerza de inmediato).
+
+- **Servidor:** handler de señal que inicia el apagado, cierra el socket de escucha y deja de aceptar conexiones; por cada conexión con cliente se registran logs al **cerrar el socket del cliente** (`close_socket`, recurso `client_socket`) además del cierre del listen (`server_socket`).
+- **Cliente:** contexto cancelado con **SIGTERM**; se cierra la conexión activa y se sale del loop sin dejar el FD abierto; log al cerrar el socket del cliente.
+
+**Makefile:** `make docker-compose-down` ejecuta `docker compose stop -t 1` y luego `down`. El **`-t 1`** es el **segundo de gracia** entre el SIGTERM inicial y que Compose pase a forzar el cierre: da tiempo a que los procesos ejecuten el handler y cierren recursos. Podés subir ese valor si querés más margen en pruebas manuales.
+
+**Probar a mano:** levantar con `./generar-compose.sh docker-compose-dev.yaml <N>` y los `make` habituales; en otra terminal `docker compose -f docker-compose-dev.yaml logs -f` y luego `docker stop -t 20 server` o `client1` (o `make docker-compose-down`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
