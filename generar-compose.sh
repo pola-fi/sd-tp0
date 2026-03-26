@@ -31,7 +31,7 @@ services:
 
 YAML
 
-  for i in $(seq 1 "$client_count"); do
+  for ((i = 1; i <= client_count; i++)); do
     cat <<YAML
   client${i}:
     container_name: client${i}
