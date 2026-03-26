@@ -24,6 +24,15 @@ make docker-compose-logs
 
 N: cantidad de clientes
 
+### Ejercicio 2 — Config por volumen
+
+Los archivos **`server/config.ini`** (server) y **`client/config.yaml`** (client) viven en el repo en el host. `generar-compose.sh` genera un compose que los monta en el container:
+
+- `./server/config.ini` → `/app/config.ini`
+- `./client/config.yaml` → `/app/config.yaml`
+
+Ejecucion: `./generar-compose.sh docker-compose-dev.yaml <N>` y luego los `make` de la prueba manual. 
+El volumen del host esta montado dentro del contenedor, por eso no es necesario hacer re-build de la imagen al cambiar la configuracion para que tome los valores iniciales. Con hacer `make docker-compose-up` alcanza, si esta corriendo se puede hacer restart del servicio con `docker restart server` por ejemplo
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
