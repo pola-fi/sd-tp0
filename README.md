@@ -95,16 +95,57 @@ agency_id (1 byte) | dni (8 bytes, UTF-8) | nacimiento (10 bytes, UTF-8, fecha Y
 - **Cliente → servidor — mensaje batch:**  
   `cantidad_apuestas (2 bytes, uint16 BE)`  
   y por cada apuesta: `largo_payload (2 bytes BE) | payload` donde `payload` es el mismo **BET binario** del ej. 5 (ver arriba).  
-  Referencia: `client/network/protocol/mixed_schema.go` (`SerializeBatch`), `server/common/protocol/receiver.py` (`recv_full_batch_message`).
 - **Servidor → cliente — respuesta:** **3 bytes:** `status (1 byte: 0=fail, 1=success)` + `count (2 bytes BE)` = cantidad de apuestas del batch asociada al resultado. No es texto `ok\n` como en ej5. Referencia: `server/common/protocol/batch.py`.
 
 **Logs**
 
 - Servidor, si todo el batch se persistió: `action: apuesta_recibida | result: success | cantidad: …`. Si falla el almacenamiento del batch: `… | result: fail | cantidad: …`.
 - Cliente, por batch aceptado: `action: apuesta_enviada | result: success | cantidad: …` (**en ej6 el enunciado no exige `dni`/`numero` en este log**; cambia respecto del ej. 5).
-- Tras cerrar el socket TCP de cada envío de batch, el cliente puede loguear `action: close_socket | … | client_id: …`.
+- Tras cada petición TCP (batch, `done`, consulta), el cliente cierra el socket y loguea `action: close_socket | result: success | resource: client_socket | client_id: …`
 
 **Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y **Ejecucion manual**. Los tests en `tp0-tests` regeneran **`agency-1.csv`** por caso; validan la suma de `cantidad` en logs `apuesta_recibida` del servidor.
+
+### Ejercicio 7 — Fin de envío, sorteo y ganadores por agencia
+
+Se mantiene todo lo del **ej. 6** (CSV, batches, `apuesta_recibida` / `apuesta_enviada`). Se agrega el **ciclo de sorteo**.
+
+**Flujo por cliente**
+
+1. Enviar todos los batches del CSV (igual que ej6).
+2. Avisar **fin de envío** con **`SendDone`**.
+3. Consultar ganadores: mandar **query** por TCP; si la respuesta es **pending**, esperar un poco y volver a consultar (**otra conexión**); cuando sea **ready**, seguir.
+4. Loguear **`action: consulta_ganadores | result: success | cant_ganadores: …`** (puede ser **0** si esa agencia no tiene ganadores).
+5. **`loop_finished`**.
+
+**Servidor**
+
+- Cuando llegan tantos **done** como indica **`SERVER_EXPECTED_AGENCIES`** (variable de entorno o `server/config.ini`), corre **`load_bets`** y **`has_won`** (cátedra, sin modificar), arma ganadores por agencia y loguea **`action: sorteo | result: success`**.
+- Hasta entonces, la respuesta a **query** es **pending**; después, **ready** con los DNIs de **esa** agencia. Sin listas parciales ni broadcast.
+
+**Protocolo**
+
+Cada mensaje **cliente → servidor** empieza con **1 byte de tipo**: **`1`** batch, **`2`** done, **`3`** query. Cada operación es **conexión nueva**, respuesta, y cierre (como en ej6).
+
+- **Batch:** `tipo (1) |` mismo cuerpo que en el ej. 6 (`cantidad_apuestas` uint16 BE y apuestas con largo + payload BET). Respuesta: **3 bytes** como en ej6 (`status` + `count` uint16 BE).
+
+- **Done:** `tipo (1) = 2 | agency_id (1 byte ASCII)`. Respuesta: los mismos **3 bytes** del ACK de batch.
+
+- **Query:** `tipo (1) = 3 | agency_id (1 byte ASCII)`. Pide ganadores de esa agencia.
+
+- **Respuesta a query (servidor → cliente):**  
+  `tipo (1) = 4 | estado (1 byte: 0=pending, 1=ready) | cant_ganadores (2 bytes BE) | largo_csv (2 bytes BE) | csv (UTF-8)`  
+  El **csv** son DNIs separados por comas. Con **pending** no hay resultado definitivo todavía: el cliente **reintenta** (en esta solución, espera **200 ms** entre intentos).
+
+**Logs**
+
+- Cliente: **`consulta_ganadores`** solo cuando llega **ready**; **`close_socket`** tras cada request TCP, como en ej6.
+- Servidor: **`sorteo | result: success`**; en **`receive_message`** se ve consulta **pending** o **ready** según DEBUG/INFO.
+
+**Config:** con **N** clientes, **`SERVER_EXPECTED_AGENCIES`** debe ser **N**; `generar-compose.sh` lo pone en el servicio **server** cuando **N > 0** (si **N = 0**, vale el `config.ini`).
+
+**Tests:** `test_ej7.py` en `tp0-tests` (rama `ej7`).
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` con CSVs por agencia, **Ejecucion manual**.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
