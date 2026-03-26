@@ -53,6 +53,28 @@ Levantar con ejecucion manual
 
 Ejecutar `docker stop -t 20 server` o `client1` (o `make docker-compose-down` que ejecuta `docker compose down -t 1`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
 
+### Ejercicio 5 — Lotería (una apuesta por mensaje)
+
+**Protocolo**
+
+Tipos de mensaje sobre TCP en este ejercicio:
+
+- **Mensaje BET — Apuesta (cliente → servidor):** binario, un solo payload por conexión. El servidor obtiene el tamaño total leyendo prefijos y el entero de 16 bits big-endian del número apostado. Los `|` no se envían (solo para visualización).
+
+```
+agency_id (1 byte) | dni (8 bytes, UTF-8) | nacimiento (10 bytes, UTF-8, fecha YYYY-MM-DD)
+  | nombre_len (1 byte) | nombre (UTF-8, largo = nombre_len)
+  | apellido_len (1 byte) | apellido (UTF-8, largo = apellido_len)
+  | numero_len (2 bytes, uint16 big-endian) | numero (UTF-8, largo = numero_len)
+```
+
+`agency_id` es un solo byte (identificador de agencia). DNI y fecha van en ranuras fijas; nombre, apellido y número apostado siguen al byte (o los dos bytes) que indica cuántos octetos UTF-8 ocupa cada uno (`nombre_len` y `apellido_len` ≤ 255).
+
+
+- **Mensaje BET_PROCESSED_ACK — ACK (servidor → cliente):** texto ASCII `ok` terminado en `\n`
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y los comandos de **Ejecucion manual**. Logs esperados: `action: apuesta_enviada | result: success | dni: … | numero: …` (cliente) y `action: apuesta_almacenada | result: success | dni: … | numero: …` (servidor).
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
