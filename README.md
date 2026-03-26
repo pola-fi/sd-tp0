@@ -62,18 +62,49 @@ Tipos de mensaje sobre TCP en este ejercicio:
 - **Mensaje BET — Apuesta (cliente → servidor):** binario, un solo payload por conexión. El servidor obtiene el tamaño total leyendo prefijos y el entero de 16 bits big-endian del número apostado. Los `|` no se envían (solo para visualización).
 
 ```
-agency_id (1 byte) | dni (8 bytes, UTF-8) | nacimiento (10 bytes, UTF-8, fecha YYYY-MM-DD)
-  | nombre_len (1 byte) | nombre (UTF-8, largo = nombre_len)
+agency_id (1 byte) | dni (8 bytes, UTF-8) | nacimiento (10 bytes, UTF-8, fecha YYYY-MM-DD)  | nombre_len (1 byte) | nombre (UTF-8, largo = nombre_len)
   | apellido_len (1 byte) | apellido (UTF-8, largo = apellido_len)
   | numero_len (2 bytes, uint16 big-endian) | numero (UTF-8, largo = numero_len)
 ```
 
-`agency_id` es un solo byte (identificador de agencia). DNI y fecha van en ranuras fijas; nombre, apellido y número apostado siguen al byte (o los dos bytes) que indica cuántos octetos UTF-8 ocupa cada uno (`nombre_len` y `apellido_len` ≤ 255).
+- `agency_id` es un solo byte (identificador de agencia).
+- DNI y fecha son de largo fijo (UTF-8).
+- Nombre, apellido y número apostado van después del byte (o de los dos bytes) que indica cuántos octetos UTF-8 ocupa cada uno (`nombre_len` y `apellido_len` ≤ 255).
 
 
 - **Mensaje BET_PROCESSED_ACK — ACK (servidor → cliente):** texto ASCII `ok` terminado en `\n`
 
 **Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y los comandos de **Ejecucion manual**. Logs esperados: `action: apuesta_enviada | result: success | dni: … | numero: …` (cliente) y `action: apuesta_almacenada | result: success | dni: … | numero: …` (servidor).
+
+### Ejercicio 6 — Batches desde CSV por agencia
+
+**Datos y Docker**
+
+- Cada cliente con **`AGENCY_ID=N`** lee **`.data/agency-N.csv`** (en el container: **`/app/.data/agency-N.csv`**). El compose monta **`./.data:/app/.data`**.
+- **CSV:** 5 columnas por fila, **sin encabezado**: `nombre,apellido,documento,nacimiento,numero` — ver `client/core/loader.go`.
+- Convención: **`clientN` ↔ agencia `N` ↔ `agency-N.csv`** (`generar-compose.sh`).
+- El enunciado cita **`.data/datasets.zip`** de la cátedra; en el repo hay **`agency-1.csv` … `agency-5.csv`** de ejemplo. Si al generar el compose falta **`agency-K.csv`**, el script crea un **stub** de 3 filas solo si el archivo no existe (**`ensure_agency_csv`**).
+
+**Config (`client/config.yaml`)**
+
+- **`batch: maxAmount`:** tope de apuestas **por batch**; el cliente además arma cada batch para que el paquete no supere **8192 bytes** (`MaxPacketBytes` en cliente y servidor).
+- Los campos **`loop.amount`** y **`loop.period`** siguen en el YAML y en el log `action: config`, pero **en ej6 el envío recorre solo las apuestas del CSV** hasta agotarlas (no un loop fijo por `loop_amount`). Los `bet_*` del log de config vienen del **entorno** del compose; **las apuestas enviadas son las del archivo**.
+
+**Protocolo (batch sobre TCP)**
+
+- **Cliente → servidor — mensaje batch:**  
+  `cantidad_apuestas (2 bytes, uint16 BE)`  
+  y por cada apuesta: `largo_payload (2 bytes BE) | payload` donde `payload` es el mismo **BET binario** del ej. 5 (ver arriba).  
+  Referencia: `client/network/protocol/mixed_schema.go` (`SerializeBatch`), `server/common/protocol/receiver.py` (`recv_full_batch_message`).
+- **Servidor → cliente — respuesta:** **3 bytes:** `status (1 byte: 0=fail, 1=success)` + `count (2 bytes BE)` = cantidad de apuestas del batch asociada al resultado. No es texto `ok\n` como en ej5. Referencia: `server/common/protocol/batch.py`.
+
+**Logs**
+
+- Servidor, si todo el batch se persistió: `action: apuesta_recibida | result: success | cantidad: …`. Si falla el almacenamiento del batch: `… | result: fail | cantidad: …`.
+- Cliente, por batch aceptado: `action: apuesta_enviada | result: success | cantidad: …` (**en ej6 el enunciado no exige `dni`/`numero` en este log**; cambia respecto del ej. 5).
+- Tras cerrar el socket TCP de cada envío de batch, el cliente puede loguear `action: close_socket | … | client_id: …`.
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y **Ejecucion manual**. Los tests en `tp0-tests` regeneran **`agency-1.csv`** por caso; validan la suma de `cantidad` en logs `apuesta_recibida` del servidor.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
