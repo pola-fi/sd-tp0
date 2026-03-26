@@ -1,10 +1,8 @@
 ## Entrega TP0
 
-| Campo | Completar |
-|-------|-----------|
-| **Repositorio** | https://github.com/pola-fi/sd-tp0 |
-| **Alumno/a** | Arian Jarmolinski |
-| **Padrón** | 94727 |
+**Repositorio:** https://github.com/pola-fi/sd-tp0  
+**Alumno/a:** Arian Jarmolinski  
+**Padrón:** 94727
 
 ## Ejecución por ejercicio
 
