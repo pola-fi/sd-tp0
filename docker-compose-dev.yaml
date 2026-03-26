@@ -17,14 +17,95 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_AGENCY_ID=1
-      - CLI_BET_NOMBRE=Maria
-      - CLI_BET_APELLIDO=Diaz
-      - CLI_BET_DOCUMENTO=10020181
-      - CLI_BET_NACIMIENTO=1995-04-03
-      - CLI_BET_NUMERO=6123
+      - AGENCY_ID=1
+      - NOMBRE=Carlos
+      - APELLIDO=Perez
+      - DOCUMENTO=10002835
+      - NACIMIENTO=1994-04-12
+      - NUMERO=4743
     volumes:
       - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client2:
+    container_name: client2
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=2
+      - AGENCY_ID=2
+      - NOMBRE=Sofia
+      - APELLIDO=Perez
+      - DOCUMENTO=10014792
+      - NACIMIENTO=1979-04-22
+      - NUMERO=7701
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client3:
+    container_name: client3
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=3
+      - AGENCY_ID=3
+      - NOMBRE=Sofia
+      - APELLIDO=Garcia
+      - DOCUMENTO=10030880
+      - NACIMIENTO=1986-06-03
+      - NUMERO=5788
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client4:
+    container_name: client4
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=4
+      - AGENCY_ID=4
+      - NOMBRE=Valentina
+      - APELLIDO=Gonzalez
+      - DOCUMENTO=10007219
+      - NACIMIENTO=1991-12-14
+      - NUMERO=9128
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client5:
+    container_name: client5
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=5
+      - AGENCY_ID=5
+      - NOMBRE=Valentina
+      - APELLIDO=Ramirez
+      - DOCUMENTO=10001908
+      - NACIMIENTO=1969-02-19
+      - NUMERO=3817
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
     networks:
       - testing_net
     depends_on:

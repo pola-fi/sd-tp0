@@ -115,12 +115,13 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | agency_id: %s | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | batch_max_amount: %v | agency_id: %s | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetInt("batch.maxAmount"),
 		v.GetString("agency.id"),
 		v.GetString("bet.nombre"),
 		v.GetString("bet.apellido"),
@@ -133,12 +134,12 @@ func PrintConfig(v *viper.Viper) {
 func main() {
 	v, err := InitConfig()
 	if err != nil {
-		log.Criticalf("%s", err)
+		fmt.Fprintf(os.Stderr, "config: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := InitLogger(v.GetString("log.level")); err != nil {
-		log.Criticalf("%s", err)
+		fmt.Fprintf(os.Stderr, "logger: %v\n", err)
 		os.Exit(1)
 	}
 

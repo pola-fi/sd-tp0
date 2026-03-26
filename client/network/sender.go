@@ -4,10 +4,14 @@ import (
 	"errors"
 	"io"
 
+	"github.com/op/go-logging"
+
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/models"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/network/connection"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/network/protocol"
 )
+
+var log = logging.MustGetLogger("log")
 
 // Errors
 var (
@@ -24,13 +28,15 @@ type MessageSender interface {
 
 type BetMessageSender struct {
 	connFactory connection.Connection
-	proto     protocol.BetProtocol
+	proto       protocol.BetProtocol
+	clientID    string
 }
 
-func NewBetMessageSender() *BetMessageSender {
+func NewBetMessageSender(clientID string) *BetMessageSender {
 	return &BetMessageSender{
 		connFactory: connection.NewTCPConnection(),
-		proto:     protocol.NewMixedSchemaProtocol(),
+		proto:       protocol.NewMixedSchemaProtocol(),
+		clientID:    clientID,
 	}
 }
 
@@ -39,7 +45,10 @@ func (s *BetMessageSender) SendBatch(bets []*models.Bet, serverAddress string) (
 	if err != nil {
 		return nil, ErrConnectionFailed
 	}
-	defer s.connFactory.Close()
+	defer func() {
+		_ = s.connFactory.Close()
+		log.Infof("action: close_socket | result: success | resource: client_socket | client_id: %s", s.clientID)
+	}()
 
 	data, err := s.proto.SerializeBatch(bets)
 	if err != nil {

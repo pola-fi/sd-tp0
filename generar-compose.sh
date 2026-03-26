@@ -32,6 +32,26 @@ generar_numero() {
   echo $((1000 + RANDOM % 9000))
 }
 
+# ej6: cada cliente con AGENCY_ID=N lee .data/agency-N.csv en el container (volumen ./.data).
+# Si falta el CSV, crear un stub mínimo (no sobrescribe archivos ya existentes).
+ensure_agency_csv() {
+  local id="$1"
+  mkdir -p .data
+  local f=".data/agency-${id}.csv"
+  if [[ -f "$f" ]]; then
+    return 0
+  fi
+  cat >"$f" <<'EOF'
+A,B,00000000,2000-01-01,1000
+A,B,00000001,2000-01-01,1001
+A,B,00000002,2000-01-01,1002
+EOF
+}
+
+for ((j = 1; j <= client_count; j++)); do
+  ensure_agency_csv "$j"
+done
+
 {
   cat <<'YAML'
 name: tp0
