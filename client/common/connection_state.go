@@ -31,7 +31,7 @@ func (s *connectionState) get() net.Conn {
 	return s.conn
 }
 
-func (s *connectionState) close() {
+func (s *connectionState) close(clientID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -41,5 +41,6 @@ func (s *connectionState) close() {
 
 	_ = s.conn.Close()
 	s.conn = nil
+	log.Infof("action: close_socket | result: success | resource: client_socket | client_id: %s", clientID)
 }
 

@@ -38,7 +38,7 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) StartClientLoop(ctx context.Context) {
 	go func() {
 		<-ctx.Done()
-		c.conn.close()
+		c.conn.close(c.config.ID)
 	}()
 
 	// There is an autoincremental msgID to identify every message sent
@@ -70,12 +70,12 @@ func (c *Client) StartClientLoop(ctx context.Context) {
 			msgID,
 		)
 		if c.handleError(ctx, "send_message", err) {
-			c.conn.close()
+			c.conn.close(c.config.ID)
 			return
 		}
 
 		msg, err := bufio.NewReader(conn).ReadString('\n')
-		c.conn.close()
+		c.conn.close(c.config.ID)
 
 		if c.handleError(ctx, "receive_message", err) {
 			return

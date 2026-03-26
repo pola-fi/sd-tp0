@@ -45,6 +45,11 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        peer_ip = None
+        try:
+            peer_ip = client_sock.getpeername()[0]
+        except OSError:
+            pass
         try:
             # TODO: Modify the receive to avoid short-reads
             msg = client_sock.recv(1024).rstrip().decode('utf-8')
@@ -57,6 +62,14 @@ class Server:
                 logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
             client_sock.close()
+            if peer_ip is not None:
+                logging.info(
+                    f'action: close_socket | result: success | resource: client_socket | ip: {peer_ip}'
+                )
+            else:
+                logging.info(
+                    'action: close_socket | result: success | resource: client_socket'
+                )
 
     def __accept_new_connection(self):
         """
