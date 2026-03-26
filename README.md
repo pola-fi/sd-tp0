@@ -1,3 +1,32 @@
+## Entrega TP0
+
+| Campo | Completar |
+|-------|-----------|
+| **Repositorio** | https://github.com/pola-fi/sd-tp0 |
+| **Alumno/a** | Arian Jarmolinski |
+| **Padrón** | 94727 |
+
+## Ejecución por ejercicio
+
+### **Prueba manual** 
+
+```bash
+make docker-image          
+make docker-compose-up     
+make docker-compose-logs
+```
+
+### Ejercicio 1 — Compose con N clientes
+
+1. Generar el archivo de Compose `docker-compose-dev.yaml`:
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml <N>
+```
+
+N: cantidad de clientes
+
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
