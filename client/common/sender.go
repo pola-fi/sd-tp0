@@ -20,13 +20,15 @@ type MessageSender interface {
 
 type BetMessageSender struct {
 	connFactory Connection
-	protocol     BetProtocol
+	protocol    BetProtocol
+	clientID    string
 }
 
-func NewBetMessageSender() *BetMessageSender {
+func NewBetMessageSender(clientID string) *BetMessageSender {
 	return &BetMessageSender{
 		connFactory: NewTCPConnection(),
-		protocol:     NewMixedSchemaProtocol(),
+		protocol:    NewMixedSchemaProtocol(),
+		clientID:    clientID,
 	}
 }
 
@@ -35,7 +37,10 @@ func (s *BetMessageSender) SendBet(bet *Bet, serverAddress string) (string, erro
 	if err != nil {
 		return "", ErrConnectionFailed
 	}
-	defer s.connFactory.Close()
+	defer func() {
+		_ = s.connFactory.Close()
+		log.Infof("action: close_socket | result: success | resource: client_socket | client_id: %s", s.clientID)
+	}()
 
 	data, err := s.protocol.Serialize(bet)
 	if err != nil {

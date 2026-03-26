@@ -39,7 +39,7 @@ func NewClient(config ClientConfig, bet *Bet) *Client {
 	client := &Client{
 		config: config,
 		bet:    bet,
-		sender: NewBetMessageSender(),
+		sender: NewBetMessageSender(config.ID),
 	}
 	return client
 }
@@ -83,15 +83,14 @@ func (c *Client) StartClientLoop(ctx context.Context) {
 			return
 		}
 
-		response, err := c.sender.SendBet(c.bet, c.config.ServerAddress)
+		_, err := c.sender.SendBet(c.bet, c.config.ServerAddress)
 		if c.handleError(ctx, "send_bet", err) {
 			return
 		}
 
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v | response: %v",
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
 			c.bet.GetDocument(),
 			c.bet.GetNumber(),
-			response,
 		)
 
 		// Wait a time between sending one message and the next one

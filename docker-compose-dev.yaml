@@ -17,12 +17,12 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_AGENCY_ID=1
-      - CLI_BET_NOMBRE=Carlos
-      - CLI_BET_APELLIDO=Diaz
-      - CLI_BET_DOCUMENTO=10011324
-      - CLI_BET_NACIMIENTO=1997-05-14
-      - CLI_BET_NUMERO=4233
+      - AGENCY_ID=1
+      - NOMBRE=Carlos
+      - APELLIDO=Perez
+      - DOCUMENTO=10003143
+      - NACIMIENTO=1974-10-21
+      - NUMERO=5051
     volumes:
       - ./client/config.yaml:/app/config.yaml
     networks:
@@ -36,12 +36,12 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=2
-      - CLI_AGENCY_ID=2
-      - CLI_BET_NOMBRE=Laura
-      - CLI_BET_APELLIDO=Martinez
-      - CLI_BET_DOCUMENTO=10006134
-      - CLI_BET_NACIMIENTO=1973-09-24
-      - CLI_BET_NUMERO=8043
+      - AGENCY_ID=2
+      - NOMBRE=Juan
+      - APELLIDO=Ramirez
+      - DOCUMENTO=10003071
+      - NACIMIENTO=1985-05-25
+      - NUMERO=4980
     volumes:
       - ./client/config.yaml:/app/config.yaml
     networks:

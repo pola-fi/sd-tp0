@@ -49,7 +49,7 @@ services:
 
 YAML
 
-  for i in $(seq 1 "$client_count"); do
+  for ((i = 1; i <= client_count; i++)); do
     agency_id=$i
     nombre_idx=$((RANDOM % ${#NOMBRES[@]}))
     apellido_idx=$((RANDOM % ${#APELLIDOS[@]}))
@@ -66,12 +66,12 @@ YAML
     entrypoint: /client
     environment:
       - CLI_ID=${i}
-      - CLI_AGENCY_ID=${agency_id}
-      - CLI_BET_NOMBRE=${nombre}
-      - CLI_BET_APELLIDO=${apellido}
-      - CLI_BET_DOCUMENTO=${documento}
-      - CLI_BET_NACIMIENTO=${nacimiento}
-      - CLI_BET_NUMERO=${numero}
+      - AGENCY_ID=${agency_id}
+      - NOMBRE=${nombre}
+      - APELLIDO=${apellido}
+      - DOCUMENTO=${documento}
+      - NACIMIENTO=${nacimiento}
+      - NUMERO=${numero}
     volumes:
       - ./client/config.yaml:/app/config.yaml
     networks:
