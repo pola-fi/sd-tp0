@@ -37,7 +37,7 @@ func NewClient(config ClientConfig, bets []*models.Bet) *Client {
 	return &Client{
 		config:  config,
 		bets:    bets,
-		sender:  network.NewBetMessageSender(),
+		sender:  network.NewBetMessageSender(config.ID),
 		chunker: NewChunker(proto, config.BatchMaxAmount),
 	}
 }

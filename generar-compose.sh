@@ -32,9 +32,7 @@ generar_numero() {
   echo $((1000 + RANDOM % 9000))
 }
 
-# ej6: cada cliente con AGENCY_ID=N lee .data/agency-N.csv en el container (volumen ./.data).
-# Si falta el CSV, crear un stub mínimo (no sobrescribe archivos ya existentes).
-ensure_agency_csv() {
+ensure_stub_csv() {
   local id="$1"
   mkdir -p .data
   local f=".data/agency-${id}.csv"
@@ -49,7 +47,7 @@ EOF
 }
 
 for ((j = 1; j <= client_count; j++)); do
-  ensure_agency_csv "$j"
+  ensure_stub_csv "$j"
 done
 
 {
@@ -62,7 +60,11 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - SERVER_EXPECTED_AGENCIES=${client_count}
+YAML
+  if [[ "$client_count" -gt 0 ]]; then
+    printf '      - SERVER_EXPECTED_AGENCIES=%s\n' "$client_count"
+  fi
+  cat <<'YAML'
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -115,3 +117,4 @@ YAML
 } > "$output_file"
 
 echo "Docker Compose generado en $output_file con $client_count cliente(s)."
+

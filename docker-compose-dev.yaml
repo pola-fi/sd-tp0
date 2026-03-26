@@ -6,7 +6,7 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - SERVER_EXPECTED_AGENCIES=3
+      - SERVER_EXPECTED_AGENCIES=7
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -18,12 +18,12 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_AGENCY_ID=1
-      - CLI_BET_NOMBRE=Maria
-      - CLI_BET_APELLIDO=Sanchez
-      - CLI_BET_DOCUMENTO=10012631
-      - CLI_BET_NACIMIENTO=1987-02-02
-      - CLI_BET_NUMERO=9853
+      - AGENCY_ID=1
+      - NOMBRE=Ana
+      - APELLIDO=Diaz
+      - DOCUMENTO=10011849
+      - NACIMIENTO=1989-11-05
+      - NUMERO=4758
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
@@ -38,12 +38,12 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=2
-      - CLI_AGENCY_ID=2
-      - CLI_BET_NOMBRE=Valentina
-      - CLI_BET_APELLIDO=Lopez
-      - CLI_BET_DOCUMENTO=10013760
-      - CLI_BET_NACIMIENTO=1969-06-01
-      - CLI_BET_NUMERO=4092
+      - AGENCY_ID=2
+      - NOMBRE=Pedro
+      - APELLIDO=Garcia
+      - DOCUMENTO=10002671
+      - NACIMIENTO=1995-08-04
+      - NUMERO=4580
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
@@ -58,12 +58,92 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=3
-      - CLI_AGENCY_ID=3
-      - CLI_BET_NOMBRE=Diego
-      - CLI_BET_APELLIDO=Lopez
-      - CLI_BET_DOCUMENTO=10026702
-      - CLI_BET_NACIMIENTO=1975-09-18
-      - CLI_BET_NUMERO=6649
+      - AGENCY_ID=3
+      - NOMBRE=Diego
+      - APELLIDO=Ramirez
+      - DOCUMENTO=10010481
+      - NACIMIENTO=1973-11-12
+      - NUMERO=3390
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client4:
+    container_name: client4
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=4
+      - AGENCY_ID=4
+      - NOMBRE=Ana
+      - APELLIDO=Gonzalez
+      - DOCUMENTO=10000875
+      - NACIMIENTO=1961-05-19
+      - NUMERO=2783
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client5:
+    container_name: client5
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=5
+      - AGENCY_ID=5
+      - NOMBRE=Sofia
+      - APELLIDO=Torres
+      - DOCUMENTO=10014048
+      - NACIMIENTO=1974-02-26
+      - NUMERO=6957
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client6:
+    container_name: client6
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=6
+      - AGENCY_ID=6
+      - NOMBRE=Pedro
+      - APELLIDO=Garcia
+      - DOCUMENTO=10031442
+      - NACIMIENTO=1974-02-04
+      - NUMERO=6350
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+      - ./.data:/app/.data
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client7:
+    container_name: client7
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=7
+      - AGENCY_ID=7
+      - NOMBRE=Carlos
+      - APELLIDO=Torres
+      - DOCUMENTO=10018314
+      - NACIMIENTO=1966-10-19
+      - NUMERO=2223
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data

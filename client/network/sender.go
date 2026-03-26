@@ -1,10 +1,14 @@
 package network
 
 import (
+	"github.com/op/go-logging"
+
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/models"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/network/connection"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/network/protocol"
 )
+
+var log = logging.MustGetLogger("log")
 
 type MessageSender interface {
 	SendBatch(bets []*models.Bet, serverAddress string) (*protocol.BatchResponse, error)
@@ -15,12 +19,14 @@ type MessageSender interface {
 type BetMessageSender struct {
 	connFactory connection.Connection
 	proto       protocol.BetProtocol
+	clientID    string
 }
 
-func NewBetMessageSender() *BetMessageSender {
+func NewBetMessageSender(clientID string) *BetMessageSender {
 	return &BetMessageSender{
 		connFactory: connection.NewTCPConnection(),
 		proto:       protocol.NewBetProtocol(),
+		clientID:    clientID,
 	}
 }
 
