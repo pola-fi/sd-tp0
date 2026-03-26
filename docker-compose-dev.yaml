@@ -18,11 +18,30 @@ services:
     environment:
       - CLI_ID=1
       - CLI_AGENCY_ID=1
-      - CLI_BET_NOMBRE=Maria
+      - CLI_BET_NOMBRE=Carlos
       - CLI_BET_APELLIDO=Diaz
-      - CLI_BET_DOCUMENTO=10020181
-      - CLI_BET_NACIMIENTO=1995-04-03
-      - CLI_BET_NUMERO=6123
+      - CLI_BET_DOCUMENTO=10011324
+      - CLI_BET_NACIMIENTO=1997-05-14
+      - CLI_BET_NUMERO=4233
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
+    networks:
+      - testing_net
+    depends_on:
+      - server
+
+  client2:
+    container_name: client2
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=2
+      - CLI_AGENCY_ID=2
+      - CLI_BET_NOMBRE=Laura
+      - CLI_BET_APELLIDO=Martinez
+      - CLI_BET_DOCUMENTO=10006134
+      - CLI_BET_NACIMIENTO=1973-09-24
+      - CLI_BET_NUMERO=8043
     volumes:
       - ./client/config.yaml:/app/config.yaml
     networks:

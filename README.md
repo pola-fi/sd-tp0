@@ -6,7 +6,7 @@
 
 ## Ejecución por ejercicio
 
-### **Prueba manual** 
+### **Ejecucion manual** 
 
 ```bash
 make docker-image          
@@ -49,14 +49,9 @@ Si el echo devuelve el mismo mensaje enviado, imprime `action: test_echo_server 
 
 ### Ejercicio 4 — SIGTERM y cierre graceful
 
-Cliente y servidor reaccionan a **SIGTERM** cerrando sockets y saliendo de forma ordenada (sin depender de que Docker mate el proceso a la fuerza de inmediato).
+Levantar con ejecucion manual
 
-- **Servidor:** handler de señal que inicia el apagado, cierra el socket de escucha y deja de aceptar conexiones; por cada conexión con cliente se registran logs al **cerrar el socket del cliente** (`close_socket`, recurso `client_socket`) además del cierre del listen (`server_socket`).
-- **Cliente:** contexto cancelado con **SIGTERM**; se cierra la conexión activa y se sale del loop sin dejar el FD abierto; log al cerrar el socket del cliente.
-
-**Makefile:** `make docker-compose-down` ejecuta `docker compose stop -t 1` y luego `down`. El **`-t 1`** es el **segundo de gracia** entre el SIGTERM inicial y que Compose pase a forzar el cierre: da tiempo a que los procesos ejecuten el handler y cierren recursos. Podés subir ese valor si querés más margen en pruebas manuales.
-
-**Probar a mano:** levantar con `./generar-compose.sh docker-compose-dev.yaml <N>` y los `make` habituales; en otra terminal `docker compose -f docker-compose-dev.yaml logs -f` y luego `docker stop -t 20 server` o `client1` (o `make docker-compose-down`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
+Ejecutar `docker stop -t 20 server` o `client1` (o `make docker-compose-down` que ejecuta `docker compose down -t 1`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
 
 # TP0: Docker + Comunicaciones + Concurrencia
 
