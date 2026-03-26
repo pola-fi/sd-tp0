@@ -1,3 +1,39 @@
+## Entrega TP0
+
+**Repositorio:** https://github.com/pola-fi/sd-tp0  
+**Alumno/a:** Arian Jarmolinski  
+**Padrón:** 94727
+
+## Ejecución por ejercicio
+
+### **Prueba manual** 
+
+```bash
+make docker-image          
+make docker-compose-up     
+make docker-compose-logs
+```
+
+### Ejercicio 1 — Compose con N clientes
+
+1. Generar el archivo de Compose `docker-compose-dev.yaml`:
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml <N>
+```
+
+N: cantidad de clientes
+
+### Ejercicio 2 — Config por volumen
+
+Los archivos **`server/config.ini`** (server) y **`client/config.yaml`** (client) viven en el repo en el host. `generar-compose.sh` genera un compose que los monta en el container:
+
+- `./server/config.ini` → `/app/config.ini`
+- `./client/config.yaml` → `/app/config.yaml`
+
+Ejecucion: `./generar-compose.sh docker-compose-dev.yaml <N>` y luego los `make` de la prueba manual. 
+El volumen del host esta montado dentro del contenedor, por eso no es necesario hacer re-build de la imagen al cambiar la configuracion para que tome los valores iniciales. Con hacer `make docker-compose-up` alcanza, si esta corriendo se puede hacer restart del servicio con `docker restart server` por ejemplo
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
