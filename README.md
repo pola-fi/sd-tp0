@@ -1,3 +1,52 @@
+## Entrega TP0
+
+**Repositorio:** https://github.com/pola-fi/sd-tp0  
+**Alumno/a:** Arian Jarmolinski  
+**Padrón:** 94727
+
+## Ejecución por ejercicio
+
+### **Prueba manual** 
+
+```bash
+make docker-image          
+make docker-compose-up     
+make docker-compose-logs
+```
+
+### Ejercicio 1 — Compose con N clientes
+
+1. Generar el archivo de Compose `docker-compose-dev.yaml`:
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml <N>
+```
+
+N: cantidad de clientes
+
+### Ejercicio 2 — Config por volumen
+
+Los archivos **`server/config.ini`** (server) y **`client/config.yaml`** (client) viven en el repo en el host. `generar-compose.sh` genera un compose que los monta en el container:
+
+- `./server/config.ini` → `/app/config.ini`
+- `./client/config.yaml` → `/app/config.yaml`
+
+Ejecucion: `./generar-compose.sh docker-compose-dev.yaml <N>` y luego los `make` de la prueba manual. 
+El volumen del host esta montado dentro del contenedor, por eso no es necesario hacer re-build de la imagen al cambiar la configuracion para que tome los valores iniciales. Con hacer `make docker-compose-up` alcanza, si esta corriendo se puede hacer restart del servicio con `docker restart server` por ejemplo
+
+### Ejercicio 3 — Validar el echo server
+
+Script **`validar-echo-server.sh`** en la raíz del repo. Comprueba el echo enviando un mensaje con **netcat** al `server` en el puerto del config (por defecto **12345**). El **nc** no corre en el host: el script levanta un contenedor **busybox** en la misma red Docker del compose del TP (**`tp0_testing_net`**, con proyecto `name: tp0` y red `testing_net` en el YAML generado). No hace falta publicar el puerto del servidor en el host.
+
+1. Levantar el stack (al menos el servicio `server`), por ejemplo con `./generar-compose.sh docker-compose-dev.yaml <N>` y los `make` de la prueba manual. Para probar solo el server también podés usar `N=0` en el script.
+2. Desde la raíz del repo:
+
+```bash
+sh validar-echo-server.sh
+```
+
+Si el echo devuelve el mismo mensaje enviado, imprime `action: test_echo_server | result: success`; si no, `action: test_echo_server | result: fail`.
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
