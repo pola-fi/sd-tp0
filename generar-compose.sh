@@ -32,6 +32,24 @@ generar_numero() {
   echo $((1000 + RANDOM % 9000))
 }
 
+ensure_stub_csv() {
+  local id="$1"
+  mkdir -p .data
+  local f=".data/agency-${id}.csv"
+  if [[ -f "$f" ]]; then
+    return 0
+  fi
+  cat >"$f" <<'EOF'
+A,B,00000000,2000-01-01,1000
+A,B,00000001,2000-01-01,1001
+A,B,00000002,2000-01-01,1002
+EOF
+}
+
+for ((j = 1; j <= client_count; j++)); do
+  ensure_stub_csv "$j"
+done
+
 {
   cat <<YAML
 name: tp0
@@ -42,7 +60,11 @@ services:
     entrypoint: python3 /app/main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - SERVER_EXPECTED_AGENCIES=${client_count}
+YAML
+  if [[ "$client_count" -gt 0 ]]; then
+    printf '      - SERVER_EXPECTED_AGENCIES=%s\n' "$client_count"
+  fi
+  cat <<'YAML'
     volumes:
       - ./server/config.ini:/app/config.ini
     networks:
@@ -50,7 +72,7 @@ services:
 
 YAML
 
-  for i in $(seq 1 "$client_count"); do
+  for ((i = 1; i <= client_count; i++)); do
     agency_id=$i
     nombre_idx=$((RANDOM % ${#NOMBRES[@]}))
     apellido_idx=$((RANDOM % ${#APELLIDOS[@]}))
@@ -67,12 +89,12 @@ YAML
     entrypoint: /client
     environment:
       - CLI_ID=${i}
-      - CLI_AGENCY_ID=${agency_id}
-      - CLI_BET_NOMBRE=${nombre}
-      - CLI_BET_APELLIDO=${apellido}
-      - CLI_BET_DOCUMENTO=${documento}
-      - CLI_BET_NACIMIENTO=${nacimiento}
-      - CLI_BET_NUMERO=${numero}
+      - AGENCY_ID=${agency_id}
+      - NOMBRE=${nombre}
+      - APELLIDO=${apellido}
+      - DOCUMENTO=${documento}
+      - NACIMIENTO=${nacimiento}
+      - NUMERO=${numero}
     volumes:
       - ./client/config.yaml:/app/config.yaml
       - ./.data:/app/.data
@@ -95,3 +117,4 @@ YAML
 } > "$output_file"
 
 echo "Docker Compose generado en $output_file con $client_count cliente(s)."
+

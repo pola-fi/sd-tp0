@@ -18,6 +18,27 @@ import (
 
 var log = logging.MustGetLogger("log")
 
+func applyEnvOverrides(v *viper.Viper) {
+	if s := os.Getenv("NOMBRE"); s != "" {
+		v.Set("bet.nombre", s)
+	}
+	if s := os.Getenv("APELLIDO"); s != "" {
+		v.Set("bet.apellido", s)
+	}
+	if s := os.Getenv("DOCUMENTO"); s != "" {
+		v.Set("bet.documento", s)
+	}
+	if s := os.Getenv("NACIMIENTO"); s != "" {
+		v.Set("bet.nacimiento", s)
+	}
+	if s := os.Getenv("NUMERO"); s != "" {
+		v.Set("bet.numero", s)
+	}
+	if s := os.Getenv("AGENCY_ID"); s != "" {
+		v.Set("agency.id", s)
+	}
+}
+
 // InitConfig Function that uses viper library to parse configuration parameters.
 // Viper is configured to read variables from both environment variables and the
 // config file ./config.yaml. Environment variables takes precedence over parameters
@@ -58,6 +79,8 @@ func InitConfig() (*viper.Viper, error) {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
 	}
 
+	applyEnvOverrides(v)
+
 	// Parse time.Duration variables and return an error if those variables cannot be parsed
 
 	if _, err := time.ParseDuration(v.GetString("loop.period")); err != nil {
@@ -92,14 +115,14 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | agency_id: %s | batch_max_amount: %v | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | batch_max_amount: %v | agency_id: %s | bet_nombre: %s | bet_apellido: %s | bet_documento: %s | bet_nacimiento: %s | bet_numero: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
-		v.GetString("agency.id"),
 		v.GetInt("batch.maxAmount"),
+		v.GetString("agency.id"),
 		v.GetString("bet.nombre"),
 		v.GetString("bet.apellido"),
 		v.GetString("bet.documento"),
@@ -111,12 +134,12 @@ func PrintConfig(v *viper.Viper) {
 func main() {
 	v, err := InitConfig()
 	if err != nil {
-		log.Criticalf("%s", err)
+		fmt.Fprintf(os.Stderr, "config: %v\n", err)
 		os.Exit(1)
 	}
 
 	if err := InitLogger(v.GetString("log.level")); err != nil {
-		log.Criticalf("%s", err)
+		fmt.Fprintf(os.Stderr, "logger: %v\n", err)
 		os.Exit(1)
 	}
 

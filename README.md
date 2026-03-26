@@ -1,3 +1,152 @@
+## Entrega TP0
+
+**Repositorio:** https://github.com/pola-fi/sd-tp0  
+**Alumno/a:** Arian Jarmolinski  
+**Padrón:** 94727
+
+## Ejecución por ejercicio
+
+### **Ejecucion manual** 
+
+```bash
+make docker-image          
+make docker-compose-up     
+make docker-compose-logs
+```
+
+### Ejercicio 1 — Compose con N clientes
+
+1. Generar el archivo de Compose `docker-compose-dev.yaml`:
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml <N>
+```
+
+N: cantidad de clientes
+
+### Ejercicio 2 — Config por volumen
+
+Los archivos **`server/config.ini`** (server) y **`client/config.yaml`** (client) viven en el repo en el host. `generar-compose.sh` genera un compose que los monta en el container:
+
+- `./server/config.ini` → `/app/config.ini`
+- `./client/config.yaml` → `/app/config.yaml`
+
+Ejecucion: `./generar-compose.sh docker-compose-dev.yaml <N>` y luego los `make` de la prueba manual. 
+El volumen del host esta montado dentro del contenedor, por eso no es necesario hacer re-build de la imagen al cambiar la configuracion para que tome los valores iniciales. Con hacer `make docker-compose-up` alcanza, si esta corriendo se puede hacer restart del servicio con `docker restart server` por ejemplo
+
+### Ejercicio 3 — Validar el echo server
+
+Script **`validar-echo-server.sh`** en la raíz del repo. Comprueba el echo enviando un mensaje con **netcat** al `server` en el puerto del config. El **nc** no corre en el host: el script levanta un contenedor **busybox** en la misma red Docker **`tp0_testing_net`** configurada en el docker-compose, con proyecto `name: tp0` y red `testing_net` en el YAML generado. No hace falta publicar el puerto del servidor en el host.
+
+1. Levantar el stack (al menos el servicio `server`), por ejemplo con `./generar-compose.sh docker-compose-dev.yaml 0` y los `make` de la prueba manual
+2. Desde la raíz del repo:
+
+```bash
+sh validar-echo-server.sh
+```
+
+Si el echo devuelve el mismo mensaje enviado, imprime `action: test_echo_server | result: success`; si no, `action: test_echo_server | result: fail`.
+
+### Ejercicio 4 — SIGTERM y cierre graceful
+
+Levantar con ejecucion manual
+
+Ejecutar `docker stop -t 20 server` o `client1` (o `make docker-compose-down` que ejecuta `docker compose down -t 1`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
+
+### Ejercicio 5 — Lotería (una apuesta por mensaje)
+
+**Protocolo**
+
+Tipos de mensaje sobre TCP en este ejercicio:
+
+- **Mensaje BET — Apuesta (cliente → servidor):** binario, un solo payload por conexión. El servidor obtiene el tamaño total leyendo prefijos y el entero de 16 bits big-endian del número apostado. Los `|` no se envían (solo para visualización).
+
+```
+agency_id (1 byte) | dni (8 bytes, UTF-8) | nacimiento (10 bytes, UTF-8, fecha YYYY-MM-DD)  | nombre_len (1 byte) | nombre (UTF-8, largo = nombre_len)
+  | apellido_len (1 byte) | apellido (UTF-8, largo = apellido_len)
+  | numero_len (2 bytes, uint16 big-endian) | numero (UTF-8, largo = numero_len)
+```
+
+- `agency_id` es un solo byte (identificador de agencia).
+- DNI y fecha son de largo fijo (UTF-8).
+- Nombre, apellido y número apostado van después del byte (o de los dos bytes) que indica cuántos octetos UTF-8 ocupa cada uno (`nombre_len` y `apellido_len` ≤ 255).
+
+
+- **Mensaje BET_PROCESSED_ACK — ACK (servidor → cliente):** texto ASCII `ok` terminado en `\n`
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y los comandos de **Ejecucion manual**. Logs esperados: `action: apuesta_enviada | result: success | dni: … | numero: …` (cliente) y `action: apuesta_almacenada | result: success | dni: … | numero: …` (servidor).
+
+### Ejercicio 6 — Batches desde CSV por agencia
+
+**Datos y Docker**
+
+- Cada cliente con **`AGENCY_ID=N`** lee **`.data/agency-N.csv`** (en el container: **`/app/.data/agency-N.csv`**). El compose monta **`./.data:/app/.data`**.
+- **CSV:** 5 columnas por fila, **sin encabezado**: `nombre,apellido,documento,nacimiento,numero` — ver `client/core/loader.go`.
+- Convención: **`clientN` ↔ agencia `N` ↔ `agency-N.csv`** (`generar-compose.sh`).
+- El enunciado cita **`.data/datasets.zip`** de la cátedra; en el repo hay **`agency-1.csv` … `agency-5.csv`** de ejemplo. Si al generar el compose falta **`agency-K.csv`**, el script crea un **stub** de 3 filas solo si el archivo no existe (**`ensure_agency_csv`**).
+
+**Config (`client/config.yaml`)**
+
+- **`batch: maxAmount`:** tope de apuestas **por batch**; el cliente además arma cada batch para que el paquete no supere **8192 bytes** (`MaxPacketBytes` en cliente y servidor).
+- Los campos **`loop.amount`** y **`loop.period`** siguen en el YAML y en el log `action: config`, pero **en ej6 el envío recorre solo las apuestas del CSV** hasta agotarlas (no un loop fijo por `loop_amount`). Los `bet_*` del log de config vienen del **entorno** del compose; **las apuestas enviadas son las del archivo**.
+
+**Protocolo (batch sobre TCP)**
+
+- **Cliente → servidor — mensaje batch:**  
+  `cantidad_apuestas (2 bytes, uint16 BE)`  
+  y por cada apuesta: `largo_payload (2 bytes BE) | payload` donde `payload` es el mismo **BET binario** del ej. 5 (ver arriba).  
+- **Servidor → cliente — respuesta:** **3 bytes:** `status (1 byte: 0=fail, 1=success)` + `count (2 bytes BE)` = cantidad de apuestas del batch asociada al resultado. No es texto `ok\n` como en ej5. Referencia: `server/common/protocol/batch.py`.
+
+**Logs**
+
+- Servidor, si todo el batch se persistió: `action: apuesta_recibida | result: success | cantidad: …`. Si falla el almacenamiento del batch: `… | result: fail | cantidad: …`.
+- Cliente, por batch aceptado: `action: apuesta_enviada | result: success | cantidad: …` (**en ej6 el enunciado no exige `dni`/`numero` en este log**; cambia respecto del ej. 5).
+- Tras cada petición TCP (batch, `done`, consulta), el cliente cierra el socket y loguea `action: close_socket | result: success | resource: client_socket | client_id: …`
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` y **Ejecucion manual**. Los tests en `tp0-tests` regeneran **`agency-1.csv`** por caso; validan la suma de `cantidad` en logs `apuesta_recibida` del servidor.
+
+### Ejercicio 7 — Fin de envío, sorteo y ganadores por agencia
+
+Se mantiene todo lo del **ej. 6** (CSV, batches, `apuesta_recibida` / `apuesta_enviada`). Se agrega el **ciclo de sorteo**.
+
+**Flujo por cliente**
+
+1. Enviar todos los batches del CSV (igual que ej6).
+2. Avisar **fin de envío** con **`SendDone`**.
+3. Consultar ganadores: mandar **query** por TCP; si la respuesta es **pending**, esperar un poco y volver a consultar (**otra conexión**); cuando sea **ready**, seguir.
+4. Loguear **`action: consulta_ganadores | result: success | cant_ganadores: …`** (puede ser **0** si esa agencia no tiene ganadores).
+5. **`loop_finished`**.
+
+**Servidor**
+
+- Cuando llegan tantos **done** como indica **`SERVER_EXPECTED_AGENCIES`** (variable de entorno o `server/config.ini`), corre **`load_bets`** y **`has_won`** (cátedra, sin modificar), arma ganadores por agencia y loguea **`action: sorteo | result: success`**.
+- Hasta entonces, la respuesta a **query** es **pending**; después, **ready** con los DNIs de **esa** agencia. Sin listas parciales ni broadcast.
+
+**Protocolo**
+
+Cada mensaje **cliente → servidor** empieza con **1 byte de tipo**: **`1`** batch, **`2`** done, **`3`** query. Cada operación es **conexión nueva**, respuesta, y cierre (como en ej6).
+
+- **Batch:** `tipo (1) |` mismo cuerpo que en el ej. 6 (`cantidad_apuestas` uint16 BE y apuestas con largo + payload BET). Respuesta: **3 bytes** como en ej6 (`status` + `count` uint16 BE).
+
+- **Done:** `tipo (1) = 2 | agency_id (1 byte ASCII)`. Respuesta: los mismos **3 bytes** del ACK de batch.
+
+- **Query:** `tipo (1) = 3 | agency_id (1 byte ASCII)`. Pide ganadores de esa agencia.
+
+- **Respuesta a query (servidor → cliente):**  
+  `tipo (1) = 4 | estado (1 byte: 0=pending, 1=ready) | cant_ganadores (2 bytes BE) | largo_csv (2 bytes BE) | csv (UTF-8)`  
+  El **csv** son DNIs separados por comas. Con **pending** no hay resultado definitivo todavía: el cliente **reintenta** (en esta solución, espera **200 ms** entre intentos).
+
+**Logs**
+
+- Cliente: **`consulta_ganadores`** solo cuando llega **ready**; **`close_socket`** tras cada request TCP, como en ej6.
+- Servidor: **`sorteo | result: success`**; en **`receive_message`** se ve consulta **pending** o **ready** según DEBUG/INFO.
+
+**Config:** con **N** clientes, **`SERVER_EXPECTED_AGENCIES`** debe ser **N**; `generar-compose.sh` lo pone en el servicio **server** cuando **N > 0** (si **N = 0**, vale el `config.ini`).
+
+**Tests:** `test_ej7.py` en `tp0-tests` (rama `ej7`).
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` con CSVs por agencia, **Ejecucion manual**.
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.

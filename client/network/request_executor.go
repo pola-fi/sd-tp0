@@ -16,7 +16,10 @@ func (s *BetMessageSender) executeRequest(serverAddress string, data []byte, rea
 	if err := s.connFactory.Connect(serverAddress); err != nil {
 		return nil, ErrConnectionFailed
 	}
-	defer s.connFactory.Close()
+	defer func() {
+		_ = s.connFactory.Close()
+		log.Infof("action: close_socket | result: success | resource: client_socket | client_id: %s", s.clientID)
+	}()
 
 	if err := writeAll(s.connFactory, data); err != nil {
 		return nil, err
