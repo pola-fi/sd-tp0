@@ -147,6 +147,40 @@ Cada mensaje **cliente → servidor** empieza con **1 byte de tipo**: **`1`** ba
 
 **Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` con CSVs por agencia, **Ejecucion manual**.
 
+### Ejercicio 8 — Concurrencia en el servidor
+
+Se mantiene **todo** lo del **ej. 7** (protocolo, cliente, sorteo, consultas). El cambio está solo en el **servidor Python**: debe **atender varios clientes a la vez** (varias conexiones concurrentes).
+
+**GIL (CPython)**
+
+- Con **threads**, el **GIL** limita el paralelismo **real de CPU** en un solo proceso.
+- La **red** y el **disco** suelen **liberar** el GIL al esperar; varios clientes pueden progresar en **I/O** a la vez. En este TP importa la **concurrencia** de conexiones, no saturar núcleos con cálculo puro en Python.
+
+**Modelo**
+
+- El bucle **`Server.run`** hace **`accept`** en el socket de escucha.
+- Cada conexión se atiende en un **`threading.Thread`**: leer mensaje completo, **`BetHandler.process`**, enviar respuesta, cerrar el socket del cliente y loguear **`close_socket`** (ver **`server/common/server.py`** — workers y **`join`** en **`shutdown`**).
+
+**Sincronización (locks)**
+
+- **`store_bets`** (`server/common/utils.py`): lock para no mezclar escrituras a **`bets.csv`** entre hilos.
+- **`DrawState`** (`server/common/draw_state.py`): lock para **`done`**, **`ready`**, ganadores y agencias vistas.
+
+**Cierre (ej. 4)**
+
+- En **`shutdown`**, además del cierre del **listening socket**, se hace **`join`** de los workers (con timeout) para un cierre ordenado.
+
+**Ejecución:** `./generar-compose.sh docker-compose-dev.yaml <N>` con CSVs por agencia y luego **Ejecucion manual**.
+
+
+**Logs**
+
+- **Servidor:** con **varios** clientes, las líneas de **`accept_connections`** y **`receive_message`** aparecen **entremezcladas**. Debe verse el mismo flujo funcional que en ej7: **`apuesta_recibida`**, **`done`**, **`query_winners`** con **pending**/**ready**, **`sorteo | result: success`**, **`close_socket`** por IP.
+
+- **Cliente:** igual que **ej. 7** — **`consulta_ganadores`**, **`loop_finished`**, **`close_socket`** con **`client_id`**.
+
+
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
