@@ -1,3 +1,63 @@
+## Entrega TP0
+
+**Repositorio:** https://github.com/pola-fi/sd-tp0  
+**Alumno/a:** Arian Jarmolinski  
+**Padrón:** 94727
+
+## Ejecución por ejercicio
+
+### **Prueba manual** 
+
+```bash
+make docker-image          
+make docker-compose-up     
+make docker-compose-logs
+```
+
+### Ejercicio 1 — Compose con N clientes
+
+1. Generar el archivo de Compose `docker-compose-dev.yaml`:
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml <N>
+```
+
+N: cantidad de clientes
+
+### Ejercicio 2 — Config por volumen
+
+Los archivos **`server/config.ini`** (server) y **`client/config.yaml`** (client) viven en el repo en el host. `generar-compose.sh` genera un compose que los monta en el container:
+
+- `./server/config.ini` → `/app/config.ini`
+- `./client/config.yaml` → `/app/config.yaml`
+
+Ejecucion: `./generar-compose.sh docker-compose-dev.yaml <N>` y luego los `make` de la prueba manual. 
+El volumen del host esta montado dentro del contenedor, por eso no es necesario hacer re-build de la imagen al cambiar la configuracion para que tome los valores iniciales. Con hacer `make docker-compose-up` alcanza, si esta corriendo se puede hacer restart del servicio con `docker restart server` por ejemplo
+
+### Ejercicio 3 — Validar el echo server
+
+Script **`validar-echo-server.sh`** en la raíz del repo. Comprueba el echo enviando un mensaje con **netcat** al `server` en el puerto del config. El **nc** no corre en el host: el script levanta un contenedor **busybox** en la misma red Docker **`tp0_testing_net`** configurada en el docker-compose, con proyecto `name: tp0` y red `testing_net` en el YAML generado. No hace falta publicar el puerto del servidor en el host.
+
+1. Levantar el stack (al menos el servicio `server`), por ejemplo con `./generar-compose.sh docker-compose-dev.yaml 0` y los `make` de la prueba manual
+2. Desde la raíz del repo:
+
+```bash
+sh validar-echo-server.sh
+```
+
+Si el echo devuelve el mismo mensaje enviado, imprime `action: test_echo_server | result: success`; si no, `action: test_echo_server | result: fail`.
+
+### Ejercicio 4 — SIGTERM y cierre graceful
+
+Cliente y servidor reaccionan a **SIGTERM** cerrando sockets y saliendo de forma ordenada (sin depender de que Docker mate el proceso a la fuerza de inmediato).
+
+- **Servidor:** handler de señal que inicia el apagado, cierra el socket de escucha y deja de aceptar conexiones; por cada conexión con cliente se registran logs al **cerrar el socket del cliente** (`close_socket`, recurso `client_socket`) además del cierre del listen (`server_socket`).
+- **Cliente:** contexto cancelado con **SIGTERM**; se cierra la conexión activa y se sale del loop sin dejar el FD abierto; log al cerrar el socket del cliente.
+
+**Makefile:** `make docker-compose-down` ejecuta `docker compose stop -t 1` y luego `down`. El **`-t 1`** es el **segundo de gracia** entre el SIGTERM inicial y que Compose pase a forzar el cierre: da tiempo a que los procesos ejecuten el handler y cierren recursos. Podés subir ese valor si querés más margen en pruebas manuales.
+
+**Probar a mano:** levantar con `./generar-compose.sh docker-compose-dev.yaml <N>` y los `make` habituales; en otra terminal `docker compose -f docker-compose-dev.yaml logs -f` y luego `docker stop -t 20 server` o `client1` (o `make docker-compose-down`) y verificar en los logs líneas de shutdown / `close_socket` y que los containers salen con código 0 cuando corresponde.
+
 # TP0: Docker + Comunicaciones + Concurrencia
 
 En el presente repositorio se provee un esqueleto básico de cliente/servidor, en donde todas las dependencias del mismo se encuentran encapsuladas en containers. Los alumnos deberán resolver una guía de ejercicios incrementales, teniendo en cuenta las condiciones de entrega descritas al final de este enunciado.
